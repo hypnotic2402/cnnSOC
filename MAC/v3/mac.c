@@ -10,7 +10,7 @@ unsigned int mac_ref(unsigned int x1, unsigned int y1, unsigned int x2, unsigned
     uint32_t mac = 0;
 
     mac = mac + (x1 * y1);
-    mac = mac + (x2 * y2);
+    // mac = mac + (x2 * y2);
 
     return mac;
 
@@ -29,12 +29,12 @@ int main(void)
   reg_write32(MAC_X, x1);
   reg_write32(MAC_Y, y1);
 
-  while ((reg_read8(GCD_STATUS) & 0x2) == 0) ;
+  while ((reg_read8(GCD_STATUS) & 0x1) == 0) ;
 
-  reg_write32(MAC_X, x2);
-  reg_write32(MAC_Y, y2);
+  // reg_write32(MAC_X, x2);
+  // reg_write32(MAC_Y, y2);
 
-  while ((reg_read8(GCD_STATUS) & 0x2) == 0) ;
+  // while ((reg_read8(GCD_STATUS) & 0x2) == 0) ;
 
 
   // wait for peripheral to complete

@@ -14,7 +14,8 @@ import freechips.rocketchip.util.UIntIsOneOf
 case class MACParams(
   address: BigInt = 0x1000,
   width: Int = 32,
-  useAXI4: Boolean = false)
+  useAXI4: Boolean = false,
+  useBlackBox: Boolean = false)
 
 case object MACKey extends Field[Option[MACParams]](None)
 
@@ -46,6 +47,38 @@ class MACMMIOBlackBox(val w: Int) extends BlackBox(Map("WIDTH" -> IntParam(w))) 
   addResource("/vsrc/MACMMIOBlackBox.v")
 }
 
+class MACMMIOChiselModule(val w: Int) extends Module
+  with HasMACIO
+{
+  val s_idle :: s_run :: s_done :: Nil = Enum(3)
+
+  val state = RegInit(s_idle)
+  val done   = Reg(UInt(w.W))
+  val mac   = Reg(UInt(w.W))
+
+  io.input_ready := state === s_idle
+  io.output_valid := state === s_done
+  io.mac := mac
+
+  when (state === s_idle && io.input_valid) {
+    state := s_run
+  } .elsewhen (state === s_run && done === 0.U) {
+    state := s_done
+  } .elsewhen (state === s_done && io.output_ready) {
+    state := s_idle
+  }
+
+  when (state === s_idle && io.input_valid) {
+    mac := 0.U
+    done := 1.U
+  } .elsewhen (state === s_run) {
+    mac := mac + (io.x * io.y)
+    done := 0.U
+  }
+
+  io.busy := state =/= s_idle
+}
+
 trait MACModule extends HasRegMap {
   val io: MACTopIO
 
@@ -57,8 +90,13 @@ trait MACModule extends HasRegMap {
   val x = Wire(new DecoupledIO(UInt(params.width.W)))
   val y = Wire(new DecoupledIO(UInt(params.width.W)))
   val mac = Wire(new DecoupledIO(UInt(params.width.W)))
+  val status = Wire(UInt(2.W))
 
-  impl = Module(new MACMMIOBlackBox(params.width))
+  val impl = if (params.useBlackBox) {
+    Module(new MACMMIOBlackBox(params.width))
+  } else {
+    Module(new MACMMIOChiselModule(params.width))
+  }
 
   impl.io.clock := clock
   impl.io.reset := reset.asBool
@@ -66,14 +104,16 @@ trait MACModule extends HasRegMap {
   impl.io.x := x.bits
   impl.io.y := y.bits
 
-  impl.io.input_valid := y.valid & x.valid
+
+
+  impl.io.input_valid := y.valid && x.valid
   x.ready := impl.io.input_ready
   y.ready := impl.io.input_ready
 
 
   
   mac.bits := impl.io.mac
-  mac.valid = impl.io.output_valid
+  mac.valid := impl.io.output_valid
   impl.io.output_ready := mac.ready
 
   status := Cat(impl.io.input_ready, impl.io.output_valid)
