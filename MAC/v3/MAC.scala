@@ -185,5 +185,5 @@ trait CanHavePeripheryMACModuleImp extends LazyModuleImp {
 }
 
 class WithMAC(useAXI4: Boolean = false) extends Config((site, here, up) => {
-  case MACKey => Some(MACParams(useAXI4 = useAXI4))
+  case MACKey => Some(MACParams(useAXI4 = useAXI4 , useBlackBox = useBlackBox))
 })
