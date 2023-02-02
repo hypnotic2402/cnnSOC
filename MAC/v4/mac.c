@@ -22,15 +22,20 @@ int main(void)
   uint32_t result, ref, x1 = 2, y1 = 3 , x2 = 2 , y2 = 5;
 
   // wait for peripheral to be ready
+  printf("Waiting for peripheral to be ready\n");
   while ((reg_read8(MAC_STATUS))) ;
-
+  printf("Peripheral Ready ....... Writing Input to Registers\n");
 
   // reg_write32(MAC_MAC , 0);
 
   reg_write32(MAC_X, x1);
   reg_write32(MAC_Y, y1);
 
-  while (!(reg_read8(MAC_STATUS) )) ;
+  printf("Input Written ..... Waiting for peripheral to be ready to give output");
+
+  while ((reg_read8(MAC_STATUS) )) ;
+
+  printf("Done Calculating\n");
 
   // reg_write32(MAC_X, x2);
   // reg_write32(MAC_Y, y2);
